@@ -1,0 +1,9 @@
+period,department,budget_line,description,planned_amount,executed_amount,remaining_amount,execution_percentage,currency,status,responsible_person
+2025-01,Education,EDU.01,Teacher salaries,150000.50,145230.25,4770.25,96.82,BGN,active,John Smith
+2025-01,Healthcare,HLT.01,Medical supplies,75500.00,72150.80,3349.20,95.56,BGN,active,Dr. Maria Johnson
+2025-01,Transportation,TRP.01,Road maintenance,200000.00,185750.30,14249.70,92.88,BGN,active,Steve Wilson
+2025-01,Culture,CUL.01,Cultural events,25000.00,23800.50,1199.50,95.20,BGN,active,Elena Brown
+2025-01,Administration,ADM.01,Office supplies,12500.75,11200.00,1300.75,89.59,BGN,active,George Miller
+2025-01,Social Services,SOC.01,Citizen assistance,80000.00,78500.00,1500.00,98.13,BGN,active,Anna Davis
+2025-01,Environment,ENV.01,City cleaning,35000.25,34100.15,900.10,97.43,BGN,active,Peter Green
+2025-01,Sports,SPT.01,Sports facilities,45200.00,42800.75,2399.25,94.69,BGN,active,Chris Taylor

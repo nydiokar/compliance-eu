@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Runs - {{ settings.app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Runs for {{ dataset.name }}</h1>
+  <a href="{{ url_for('dataset_detail', dataset_id=dataset.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Dataset
+  </a>
+  </div>
+
+<div class="card">
+  <div class="card-body">
+    {% if runs %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Processed</th>
+            <th>Artifacts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in runs %}
+          <tr>
+            <td class="text-monospace">{{ r.id[:8] }}…</td>
+            <td>
+              {% if r.status.value == 'completed' %}
+                <span class="badge bg-success">Completed</span>
+              {% elif r.status.value == 'running' %}
+                <span class="badge bg-warning">Running</span>
+              {% elif r.status.value == 'failed' %}
+                <span class="badge bg-danger">Failed</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ r.status.value }}</span>
+              {% endif %}
+            </td>
+            <td>{{ r.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ r.finished_at.strftime('%Y-%m-%d %H:%M') if r.finished_at else '-' }}</td>
+            <td>
+              {% if r.rows_valid is not none %}
+                {{ r.rows_valid }} valid
+                {% if r.rows_invalid is not none %}
+                  / {{ r.rows_invalid }} invalid
+                {% endif %}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if r.artifacts %}
+                {{ r.artifacts|length }} files
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-clock-history fs-1"></i>
+      <div class="mt-2">No runs found</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+

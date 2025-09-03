@@ -1,0 +1,37 @@
+{
+  "title": "Municipal Budget Execution Report",
+  "description": "Monthly budget execution data for municipal departments",
+  "publisher": "Sample Municipality",
+  "license": "Open Data License",
+  "update_frequency": "monthly",
+  "created": "2025-01-01T12:00:00",
+  "modified": "2025-01-01T12:00:00",
+  "temporal_coverage": "2025-01",
+  "spatial_coverage": "Sample Municipality",
+  "keywords": ["budget", "municipal", "execution", "finance"],
+  "format": "CSV",
+  "encoding": "UTF-8",
+  "column_count": 11,
+  "row_count": 8,
+  "data_source": "Municipal Financial Management System",
+  "contact": {
+    "name": "Financial Department",
+    "email": "finance@sample-municipality.eu",
+    "phone": "+359 2 123 4567"
+  },
+  "validation": {
+    "schema_version": "budget_execution_v1",
+    "validation_date": "2025-01-01T12:00:00",
+    "validation_status": "passed",
+    "error_count": 0,
+    "warning_count": 0
+  },
+  "statistics": {
+    "total_planned": 623201.5,
+    "total_executed": 597732.55,
+    "total_remaining": 25468.95,
+    "average_execution_rate": 95.91,
+    "departments_count": 8,
+    "active_budget_lines": 8
+  }
+}

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File - {{ settings.app_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    padding: 60px;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.drop-zone.dragover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.file-info {
+    display: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Upload File</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Upload</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">File Upload</h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" hx-post="/api/upload/analyze" hx-encoding="multipart/form-data" 
+                      hx-target="#analysis-result" hx-indicator="#upload-spinner">
+                    
+                    <!-- Drop Zone -->
+                    <div class="drop-zone mb-4" id="dropZone">
+                        <div id="drop-content">
+                            <i class="bi bi-cloud-upload fs-1 text-muted"></i>
+                            <h4 class="mt-3">Drag and drop your file here</h4>
+                            <p class="text-muted">or click to browse</p>
+                            <input type="file" id="fileInput" name="file" class="d-none" 
+                                   accept=".csv,.xlsx,.xls,.pdf,.json,.yaml,.yml">
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                Choose File
+                            </button>
+                        </div>
+                        
+                        <div class="file-info" id="fileInfo">
+                            <i class="bi bi-file-earmark fs-1 text-primary"></i>
+                            <h5 class="mt-2" id="fileName"></h5>
+                            <p class="text-muted" id="fileSize"></p>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearFile()">
+                                <i class="bi bi-x-circle"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional Dataset Selection -->
+                    <div class="mb-3">
+                        <label for="dataset_id" class="form-label">Dataset (Optional)</label>
+                        <select class="form-select" id="dataset_id" name="dataset_id">
+                            <option value="">Select dataset for mapping suggestions...</option>
+                            <!-- Options would be populated via HTMX -->
+                        </select>
+                        <div class="form-text">
+                            If selected, we'll suggest column mappings based on the dataset profile
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="analyzeBtn" disabled>
+                            <span id="upload-spinner" class="spinner-border spinner-border-sm me-2 d-none" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </span>
+                            <i class="bi bi-search"></i> Analyze File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Supported File Types</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="bi bi-filetype-csv text-success fs-4 me-3"></i>
+                        <div>
+                            <strong>CSV Files</strong>
+                            <br><small class="text-muted">Comma-separated values</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="bi bi-file-earmark-excel text-success fs-4 me-3"></i>
+                        <div>
+                            <strong>Excel Files</strong>
+                            <br><small class="text-muted">.xlsx, .xls formats</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="bi bi-filetype-pdf text-danger fs-4 me-3"></i>
+                        <div>
+                            <strong>PDF Files</strong>
+                            <br><small class="text-muted">Text extraction</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="bi bi-filetype-json text-warning fs-4 me-3"></i>
+                        <div>
+                            <strong>JSON/YAML</strong>
+                            <br><small class="text-muted">Structured data</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>File Size Limit</h6>
+                <p class="text-muted small">
+                    Maximum file size: <strong>{{ (settings.max_file_size / 1024 / 1024) | round(0) }}MB</strong>
+                </p>
+                
+                <h6>Encoding Support</h6>
+                <p class="text-muted small">
+                    Automatic detection of UTF-8, Windows-1251, ISO-8859-1, and other common encodings.
+                    Cyrillic and Latin character support included.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Results -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div id="analysis-result"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// File upload handling
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const fileInfo = document.getElementById('fileInfo');
+const dropContent = document.getElementById('drop-content');
+const analyzeBtn = document.getElementById('analyzeBtn');
+
+// Drag and drop handlers
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        showFileInfo(files[0]);
+    }
+});
+
+dropZone.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        showFileInfo(e.target.files[0]);
+    }
+});
+
+function showFileInfo(file) {
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    
+    dropContent.style.display = 'none';
+    fileInfo.style.display = 'block';
+    analyzeBtn.disabled = false;
+}
+
+function clearFile() {
+    fileInput.value = '';
+    dropContent.style.display = 'block';
+    fileInfo.style.display = 'none';
+    analyzeBtn.disabled = true;
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Load datasets for dropdown (returns <option> list)
+htmx.ajax('GET', '/ui/datasets/options', {
+    target: '#dataset_id',
+    swap: 'innerHTML'
+});
+</script>
+{% endblock %}

@@ -1,0 +1,135 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compliance-kit"
+version = "0.1.0"
+description = "EU Compliance Automation Kit - Schema-on-read pipeline for municipal and SME compliance"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Compliance Kit", email = "info@compliance-kit.eu"}
+]
+keywords = ["compliance", "eu", "automation", "municipal", "sme"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Government",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "sqlalchemy>=2.0.23",
+    "alembic>=1.13.0",
+    "pandas>=2.1.0",
+    "openpyxl>=3.1.2",
+    "chardet>=5.2.0",
+    "python-multipart>=0.0.6",
+    "jinja2>=3.1.0",
+    "structlog>=23.2.0",
+    "apscheduler>=3.10.0",
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "python-levenshtein>=0.23.0",
+    "lxml>=4.9.0",
+    "reportlab>=4.0.0",
+    "python-docx>=1.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.27.0",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.6.0",
+    "requests-mock>=1.11.0",
+]
+ocr = [
+    "pytesseract>=0.3.10",
+    "pillow>=10.1.0",
+    "pdf2image>=1.16.0",
+]
+
+[project.scripts]
+compliance-kit = "src.cli.ck:main"
+
+[project.urls]
+Homepage = "https://github.com/compliance-kit/compliance-automation-kit"
+Documentation = "https://compliance-kit.readthedocs.io/"
+Repository = "https://github.com/compliance-kit/compliance-automation-kit"
+"Bug Reports" = "https://github.com/compliance-kit/compliance-automation-kit/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.*",
+    "openpyxl.*",
+    "chardet.*",
+    "structlog.*",
+    "apscheduler.*",
+    "Levenshtein.*",
+    "lxml.*",
+    "reportlab.*",
+    "docx.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--strict-markers --disable-warnings"
+pythonpath = ["."]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Datasets - {{ settings.app_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Datasets</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDatasetModal">
+                <i class="bi bi-plus-circle"></i> New Dataset
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if datasets %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Organization</th>
+                                    <th>Profile</th>
+                                    <th>Schedule</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dataset in datasets %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ dataset.name }}</strong>
+                                        {% if dataset.description %}
+                                        <br><small class="text-muted">{{ dataset.description }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ dataset.org_id }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ dataset.profile }}</span>
+                                    </td>
+                                    <td>
+                                        {% if dataset.schedule_cron %}
+                                            <code>{{ dataset.schedule_cron }}</code>
+                                        {% else %}
+                                            <span class="text-muted">Manual</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if dataset.active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ dataset.created_at.strftime('%Y-%m-%d') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('dataset_detail', dataset_id=dataset.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('mapping_page', dataset_id=dataset.id) }}" 
+                                               class="btn btn-outline-secondary">
+                                                <i class="bi bi-diagram-3"></i>
+                                            </a>
+                                            <a href="{{ url_for('runs_page', dataset_id=dataset.id) }}" 
+                                               class="btn btn-outline-info">
+                                                <i class="bi bi-clock-history"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-database fs-1 text-muted"></i>
+                        <h3 class="text-muted mt-3">No datasets found</h3>
+                        <p class="text-muted">Create your first dataset to get started</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDatasetModal">
+                            <i class="bi bi-plus-circle"></i> Create Dataset
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Dataset Modal -->
+<div class="modal fade" id="newDatasetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Dataset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form hx-post="/ui/datasets" hx-target="#dataset-form-result">
+                <div class="modal-body">
+                    <div id="dataset-form-result"></div>
+                    
+                    <div class="mb-3">
+                        <label for="org_id" class="form-label">Organization ID</label>
+                        <input type="text" class="form-control" id="org_id" name="org_id" required>
+                        <div class="form-text">Unique identifier for your organization</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Dataset Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="profile" class="form-label">Profile</label>
+                        <select class="form-select" id="profile" name="profile" required>
+                            <option value="">Select a profile...</option>
+                            <option value="budget_execution_v1">Budget Execution</option>
+                            <option value="procurement_v1">Procurement</option>
+                            <option value="environmental_v1">Environmental Data</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="publish_target" class="form-label">Publish Target</label>
+                        <select class="form-select" id="publish_target" name="publish_target">
+                            <option value="none">None (Manual)</option>
+                            <option value="ckan">CKAN</option>
+                            <option value="ftp">FTP</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="schedule_cron" class="form-label">Schedule (Cron)</label>
+                        <input type="text" class="form-control" id="schedule_cron" name="schedule_cron" 
+                               placeholder="0 9 1 * * (monthly at 9 AM)">
+                        <div class="form-text">Leave empty for manual processing</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Dataset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

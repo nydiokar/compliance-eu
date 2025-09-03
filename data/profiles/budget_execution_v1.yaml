@@ -1,0 +1,220 @@
+profile: budget_execution_v1
+version: "1.0"
+description: "Budget execution data profile for municipal and government organizations"
+created_by: "system"
+created_at: "2025-01-01T00:00:00"
+tags:
+  - budget
+  - municipal
+  - government
+  - financial
+
+# Column specifications with multilingual support
+columns:
+  period:
+    sources: 
+      - "Период"
+      - "Period" 
+      - "Month"
+      - "Месец"
+      - "Дата"
+      - "Date"
+      - "Reporting Period"
+    type: date
+    format: 
+      - "YYYY-MM-DD"
+      - "DD.MM.YYYY"
+      - "YYYY-MM"
+      - "MM/YYYY"
+    required: true
+    description: "Budget reporting period"
+    
+  department:
+    sources:
+      - "Отдел"
+      - "Department"
+      - "Dept"
+      - "Департамент"
+      - "Структурно звено"
+      - "Unit"
+      - "Организационно звено"
+    type: string
+    required: true
+    description: "Department or organizational unit"
+    transformation: "title"
+    
+  budget_line:
+    sources:
+      - "Бюджетна линия"
+      - "Budget Line"
+      - "Параграф"
+      - "Paragraph"
+      - "Код"
+      - "Code"
+      - "Budget Code"
+      - "Бюджетен код"
+    type: string
+    required: true
+    description: "Budget line item code or identifier"
+    
+  description:
+    sources:
+      - "Описание"
+      - "Description"
+      - "Наименование"
+      - "Name"
+      - "Title"
+      - "Заглавие"
+      - "Item Description"
+    type: string
+    required: false
+    description: "Description of the budget item"
+    
+  planned_amount:
+    sources:
+      - "Планирана сума"
+      - "Planned Amount"
+      - "Budget"
+      - "Бюджет"
+      - "План"
+      - "Initial Budget"
+      - "Първоначален бюджет"
+    type: decimal
+    required: true
+    description: "Originally planned budget amount"
+    validation:
+      min_value: 0
+      
+  executed_amount:
+    sources:
+      - "Изпълнена сума"
+      - "Executed Amount"
+      - "Actual"
+      - "Факт"
+      - "Spent"
+      - "Изразходвано"
+      - "Execution"
+      - "Изпълнение"
+    type: decimal
+    required: true
+    description: "Actually executed/spent amount"
+    validation:
+      min_value: 0
+      
+  remaining_amount:
+    sources:
+      - "Остатък"
+      - "Remaining"
+      - "Balance"
+      - "Баланс"
+      - "Available"
+      - "Налично"
+    type: decimal
+    required: false
+    description: "Remaining budget amount"
+    validation:
+      min_value: 0
+      
+  execution_percentage:
+    sources:
+      - "Процент изпълнение"
+      - "Execution Percentage"
+      - "Execution %"
+      - "% Executed"
+      - "Изпълнение %"
+    type: decimal
+    required: false
+    description: "Execution percentage (0-100)"
+    validation:
+      min_value: 0
+      max_value: 100
+      
+  currency:
+    sources:
+      - "Валута"
+      - "Currency"
+      - "Curr"
+    type: string
+    required: false
+    default: "BGN"
+    description: "Currency code"
+    validation:
+      enum_values: ["BGN", "EUR", "USD"]
+      
+  status:
+    sources:
+      - "Статус"
+      - "Status"
+      - "State"
+      - "Състояние"
+    type: string
+    required: false
+    default: "active"
+    description: "Budget line status"
+    transformation: "lower"
+    validation:
+      enum_values: ["active", "inactive", "completed", "cancelled"]
+      
+  responsible_person:
+    sources:
+      - "Отговорник"
+      - "Responsible"
+      - "Manager"
+      - "Мениджър"
+      - "Отговорно лице"
+    type: string
+    required: false
+    description: "Person responsible for this budget line"
+    
+  notes:
+    sources:
+      - "Бележки"
+      - "Notes"
+      - "Comments"
+      - "Коментари"
+      - "Забележки"
+    type: string
+    required: false
+    description: "Additional notes or comments"
+
+# Data normalization rules
+normalization:
+  thousand_sep: [" ", ","]
+  decimal_sep: [",", "."]
+  trim_whitespace: true
+  encoding: "utf-8"
+  remove_bom: true
+  normalize_unicode: true
+  date_formats:
+    - "%Y-%m-%d"
+    - "%d.%m.%Y"
+    - "%Y-%m"
+    - "%m/%Y"
+    - "%d/%m/%Y"
+  boolean_values:
+    "да": true
+    "не": false
+    "yes": true
+    "no": true
+    "активен": true
+    "неактивен": false
+    "active": true
+    "inactive": false
+
+# Validation rules
+validation:
+  allow_empty: true
+  # Business rules for budget execution
+  date_range:
+    min_date: "2020-01-01"
+    max_date: "2030-12-31"
+
+# Output specification
+output:
+  format: "csv"
+  filename_template: "budget_execution_{org_id}_{period}_{timestamp}"
+  include_metadata: true
+  encoding: "utf-8"
+  date_format: "%Y-%m-%d"
+  decimal_places: 2
+  null_representation: ""

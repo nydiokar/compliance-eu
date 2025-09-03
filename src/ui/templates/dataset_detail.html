@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Detail - {{ settings.app_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ dataset.name }}</h1>
+    <a href="{{ url_for('runs_page', dataset_id=dataset.id) }}" class="btn btn-outline-primary">
+      <i class="bi bi-clock-history"></i> View Runs
+    </a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">Dataset Info</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Organization</dt>
+          <dd class="col-sm-8">{{ dataset.org_id }}</dd>
+          <dt class="col-sm-4">Profile</dt>
+          <dd class="col-sm-8"><span class="badge bg-info">{{ dataset.profile }}</span></dd>
+          <dt class="col-sm-4">Schedule</dt>
+          <dd class="col-sm-8">{{ dataset.schedule_cron or 'Manual' }}</dd>
+          <dt class="col-sm-4">Publish Target</dt>
+          <dd class="col-sm-8">{{ dataset.publish_target }}</dd>
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">{% if dataset.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</dd>
+          <dt class="col-sm-4">Created</dt>
+          <dd class="col-sm-8">{{ dataset.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+        </dl>
+        {% if dataset.description %}
+        <hr>
+        <div class="text-muted">{{ dataset.description }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Mappings</span>
+        <a href="{{ url_for('mapping_page', dataset_id=dataset.id) }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-diagram-3"></i> Configure
+        </a>
+      </div>
+      <div class="card-body">
+        {% if mappings %}
+          <ul class="list-group list-group-flush">
+            {% for m in mappings %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Version {{ m.version }} • {{ m.created_at.strftime('%Y-%m-%d') }}</span>
+              {% if m.active %}<span class="badge bg-success">Active</span>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted">No mappings yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">Recent Runs</div>
+      <div class="card-body">
+        {% if runs %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Finished</th>
+                <th>Rows</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in runs %}
+              <tr>
+                <td class="text-monospace">{{ r.id[:8] }}…</td>
+                <td>
+                  {% if r.status.value == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                  {% elif r.status.value == 'running' %}
+                    <span class="badge bg-warning">Running</span>
+                  {% elif r.status.value == 'failed' %}
+                    <span class="badge bg-danger">Failed</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ r.status.value }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ r.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ r.finished_at.strftime('%Y-%m-%d %H:%M') if r.finished_at else '-' }}</td>
+                <td>{{ r.rows_valid or '-' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-muted">No runs yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

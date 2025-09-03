@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ settings.app_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Dashboard</h1>
+            <div>
+                <a href="{{ url_for('upload_page') }}" class="btn btn-primary">
+                    <i class="bi bi-cloud-upload"></i> Upload File
+                </a>
+                <a href="{{ url_for('datasets_page') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-circle"></i> New Dataset
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ datasets|length }}</h4>
+                        <p class="card-text">Datasets</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-database fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">
+                            {{ recent_runs|selectattr("status", "equalto", "completed")|list|length }}
+                        </h4>
+                        <p class="card-text">Successful Runs</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-check-circle fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">
+                            {{ recent_runs|selectattr("status", "equalto", "running")|list|length }}
+                        </h4>
+                        <p class="card-text">Running</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-clock fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">
+                            {{ recent_runs|selectattr("status", "equalto", "failed")|list|length }}
+                        </h4>
+                        <p class="card-text">Failed Runs</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-x-circle fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Datasets -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Datasets</h5>
+                <a href="{{ url_for('datasets_page') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if datasets %}
+                    <div class="list-group list-group-flush">
+                        {% for dataset in datasets %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ dataset.name }}</h6>
+                                <small class="text-muted">
+                                    {{ dataset.profile }} • {{ dataset.org_id }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if dataset.active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                                <a href="{{ url_for('dataset_detail', dataset_id=dataset.id) }}" 
+                                   class="btn btn-sm btn-outline-primary ms-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-database fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No datasets found</p>
+                        <a href="{{ url_for('datasets_page') }}" class="btn btn-primary">
+                            Create First Dataset
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Runs -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_runs %}
+                    <div class="list-group list-group-flush">
+                        {% for run in recent_runs %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Run {{ run.id[:8] }}...</h6>
+                                <small class="text-muted">
+                                    {{ run.started_at.strftime('%Y-%m-%d %H:%M') }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if run.status.value == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif run.status.value == 'running' %}
+                                    <span class="badge bg-warning">Running</span>
+                                {% elif run.status.value == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ run.status.value.title() }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No recent activity</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

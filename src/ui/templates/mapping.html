@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Mapping - {{ settings.app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Mapping for {{ dataset.name }}</h1>
+  <a href="{{ url_for('dataset_detail', dataset_id=dataset.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Dataset
+  </a>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">Current Mapping</div>
+      <div class="card-body">
+        {% if current_mapping %}
+          <div class="text-muted">Version {{ current_mapping.version }} • {{ current_mapping.created_at.strftime('%Y-%m-%d') }}</div>
+          <pre class="mt-3 small">{{ current_mapping.json_spec | tojson(indent=2) }}</pre>
+        {% else %}
+          <div class="text-muted">No saved mapping yet for this dataset.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">Available Profiles</div>
+      <div class="card-body">
+        {% if available_profiles %}
+          <ul class="list-group list-group-flush">
+            {% for p in available_profiles %}
+            <li class="list-group-item">{{ p }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted">No profiles found</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
