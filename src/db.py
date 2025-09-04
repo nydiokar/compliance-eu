@@ -22,26 +22,30 @@ def _enable_foreign_keys(dbapi_connection, connection_record):
 
 def create_database_engine():
     """Create database engine with appropriate configuration."""
-    # SQLite-specific configuration
+    # Configure per-backend
     connect_args = {}
-    poolclass = StaticPool
-    
-    if settings.database_url.startswith("sqlite"):
+    use_static_pool = False
+    is_sqlite = settings.database_url.startswith("sqlite")
+    if is_sqlite:
         connect_args = {
             "check_same_thread": False,  # Allow multi-threading
             "timeout": 30,  # Connection timeout
         }
+        use_static_pool = True
     
-    engine = create_engine(
-        settings.database_url,
-        connect_args=connect_args,
-        poolclass=poolclass,
-        echo=settings.debug,  # Log SQL queries in debug mode
+    engine_kwargs = dict(
+        echo=settings.debug,
         echo_pool=settings.debug,
     )
+    if connect_args:
+        engine_kwargs["connect_args"] = connect_args
+    if use_static_pool:
+        engine_kwargs["poolclass"] = StaticPool
+
+    engine = create_engine(settings.database_url, **engine_kwargs)
     
     # Enable foreign keys for SQLite
-    if settings.database_url.startswith("sqlite"):
+    if is_sqlite:
         event.listen(engine, "connect", _enable_foreign_keys)
     
     return engine

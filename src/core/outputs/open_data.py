@@ -100,6 +100,21 @@ class OpenDataExporter:
                    json_size=json_path.stat().st_size)
         
         return result
+
+
+def export_to_open_data(
+    df: pd.DataFrame,
+    metadata: Dict[str, Any],
+    dataset_name: str,
+    org_id: str,
+    output_dir: Optional[Path] = None,
+):
+    """Convenience wrapper to export a DataFrame to Open Data outputs.
+
+    Returns dict with paths to created files.
+    """
+    exporter = OpenDataExporter(output_dir=output_dir)
+    return exporter.export(df, metadata, dataset_name, org_id)
     
     def _calculate_checksum(self, file_path: Path) -> str:
         """Calculate SHA-256 checksum of a file."""

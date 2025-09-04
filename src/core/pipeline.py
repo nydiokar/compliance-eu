@@ -10,8 +10,10 @@ from src.core.mapping import HeaderMatcher, load_profile
 from src.core.normalize import normalize_dataframe, apply_column_mapping
 from src.core.validate.rules import validate_dataframe
 from src.core.outputs import export_to_open_data
+from src.core.publish.ckan import create_ckan_client_from_settings, CKANPublisher, CKANError
 from src.db import get_session, RunCRUD, ArtifactCRUD
 from src.models import RunCreate, RunUpdate, ArtifactCreate, RunStatus, ArtifactKind
+from src.settings import settings
 
 logger = get_logger("pipeline")
 
@@ -33,7 +35,8 @@ class ProcessingPipeline:
         self,
         file_path: Path,
         org_id: str,
-        output_metadata: Optional[Dict[str, Any]] = None
+        output_metadata: Optional[Dict[str, Any]] = None,
+        publish_to_ckan: bool = False
     ) -> Dict[str, Any]:
         """Process a file through the complete pipeline.
         
@@ -114,6 +117,16 @@ class ProcessingPipeline:
 
             artifacts = self._save_artifacts(run_id, file_path, export_result, mapping_result)
             
+            # Stage 6: Publish to CKAN (optional)
+            ckan_result = None
+            if publish_to_ckan:
+                try:
+                    ckan_result = self._publish_to_ckan(export_result, export_metadata, org_id, run_id)
+                    logger.info("CKAN publishing completed", package_id=ckan_result.get('package_id'))
+                except Exception as e:
+                    logger.error("CKAN publishing failed", error=str(e))
+                    # Don't fail the entire pipeline if CKAN publishing fails
+            
             # Complete the run
             final_metrics = {
                 "input_rows": len(df_raw),
@@ -123,7 +136,11 @@ class ProcessingPipeline:
                 "rows_invalid": int(len(df_raw) - len(df_valid))
             }
             
-            self._complete_run(run_id, export_result['checksums']['csv'], final_metrics)
+            # Update run with CKAN publication info if available
+            if ckan_result:
+                self._complete_run_with_ckan(run_id, export_result['checksums']['csv'], final_metrics, ckan_result)
+            else:
+                self._complete_run(run_id, export_result['checksums']['csv'], final_metrics)
             
             result = {
                 'run_id': run_id,
@@ -139,7 +156,8 @@ class ProcessingPipeline:
                 'mapping': mapping_result,
                 'quality': quality_metrics,
                 'exports': export_result,
-                'artifacts': artifacts
+                'artifacts': artifacts,
+                'ckan_publication': ckan_result
             }
             
             logger.info("Pipeline processing completed successfully",
@@ -374,6 +392,69 @@ class ProcessingPipeline:
             '.pdf': 'application/pdf'
         }
         return mime_types.get(extension, 'application/octet-stream')
+    
+    def _publish_to_ckan(
+        self,
+        export_result: Dict[str, Path],
+        metadata: Dict[str, Any],
+        org_id: str,
+        run_id: str
+    ) -> Dict[str, Any]:
+        """Publish dataset to CKAN."""
+        logger.info("Starting CKAN publication", dataset_id=self.dataset_id)
+        
+        # Create CKAN client
+        try:
+            client = create_ckan_client_from_settings()
+            publisher = CKANPublisher(client)
+        except CKANError as e:
+            logger.error("Failed to create CKAN client", error=str(e))
+            raise
+        
+        # Test connection first
+        if not client.test_connection():
+            raise CKANError("Cannot connect to CKAN instance")
+        
+        # Publish dataset
+        result = publisher.publish_dataset(
+            dataset_metadata=metadata,
+            csv_file=export_result['csv'],
+            json_file=export_result['json'],
+            metadata_file=export_result['metadata'],
+            org_id=settings.ckan_organization or org_id,
+            dataset_id=self.dataset_id
+        )
+        
+        # Log publication event
+        log_data_processing_event(
+            self.dataset_id, run_id, "ckan_publish", "completed",
+            package_id=result['package_id'],
+            ckan_url=result['url']
+        )
+        
+        return result
+    
+    def _complete_run_with_ckan(
+        self,
+        run_id: str,
+        output_hash: str,
+        metrics: Dict[str, Any],
+        ckan_result: Dict[str, Any]
+    ):
+        """Complete the processing run with CKAN publication info."""
+        with get_session() as db:
+            update_data = RunUpdate(
+                status=RunStatus.COMPLETED,
+                finished_at=datetime.now(),
+                output_hash=output_hash,
+                rows_processed=metrics.get('input_rows', 0),
+                rows_valid=metrics.get('output_rows', 0),
+                rows_invalid=metrics.get('input_rows', 0) - metrics.get('output_rows', 0),
+                external_package_id=ckan_result.get('package_id'),
+                external_resource_id=ckan_result.get('resources', {}).get('csv', {}).get('id'),
+                message="Processing and CKAN publication completed successfully"
+            )
+            RunCRUD.update(db, run_id, update_data)
 
 
 def process_file_pipeline(
@@ -381,8 +462,9 @@ def process_file_pipeline(
     dataset_id: str,
     profile_name: str,
     org_id: str,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
+    publish_to_ckan: bool = False
 ) -> Dict[str, Any]:
     """Convenience function to process a file through the complete pipeline."""
     pipeline = ProcessingPipeline(dataset_id, profile_name)
-    return pipeline.process_file(file_path, org_id, metadata)
+    return pipeline.process_file(file_path, org_id, metadata, publish_to_ckan)

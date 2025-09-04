@@ -14,6 +14,9 @@ from src.api.datasets import router as datasets_router
 from src.api.mappings import router as mappings_router
 from src.api.runs import router as runs_router
 from src.api.upload import router as upload_router
+from src.api.einvoice import router as einvoice_router
+from src.core.scheduler import get_scheduler
+from src.core.scheduler.jobs import setup_dataset_schedule
 
 # Initialize logging
 logger = setup_logging()
@@ -45,6 +48,7 @@ app.include_router(datasets_router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(mappings_router, prefix="/api/mappings", tags=["mappings"])
 app.include_router(runs_router, prefix="/api/runs", tags=["runs"])
 app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
+app.include_router(einvoice_router, prefix="/api/einvoice", tags=["einvoice"])
 
 
 @app.on_event("startup")
@@ -58,12 +62,49 @@ async def startup_event():
     except Exception as e:
         logger.error("Failed to initialize database", error=str(e))
         raise
+    
+    # Initialize scheduler
+    try:
+        scheduler = get_scheduler()
+        scheduler.start()
+        
+        # Set up existing dataset schedules
+        from src.db import DatasetCRUD
+        with get_database_session() as db:
+            datasets = DatasetCRUD.list(db, limit=1000)  # Get all datasets
+            scheduled_count = 0
+            
+            for dataset in datasets:
+                if dataset.schedule_cron and dataset.active:
+                    try:
+                        setup_dataset_schedule(dataset, scheduler)
+                        scheduled_count += 1
+                    except Exception as e:
+                        logger.error("Failed to schedule dataset", 
+                                   dataset_id=dataset.id, error=str(e))
+            
+            logger.info("Scheduler initialized", 
+                       scheduled_datasets=scheduled_count,
+                       total_datasets=len(datasets))
+    
+    except Exception as e:
+        logger.error("Failed to initialize scheduler", error=str(e))
+        # Don't fail startup if scheduler fails
+        pass
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup tasks on shutdown."""
     logger.info("Shutting down Compliance Automation Kit")
+    
+    # Stop scheduler
+    try:
+        scheduler = get_scheduler()
+        scheduler.stop()
+        logger.info("Scheduler stopped")
+    except Exception as e:
+        logger.error("Error stopping scheduler", error=str(e))
 
 
 # Web UI Routes
@@ -151,11 +192,24 @@ async def ui_create_dataset(
             schedule_cron=schedule_cron,
             publish_target=publish_target
         ))
+        
+        # Set up scheduler if cron expression provided
+        if schedule_cron and schedule_cron.strip():
+            try:
+                scheduler = get_scheduler()
+                setup_dataset_schedule(created, scheduler)
+                schedule_msg = f" and scheduled with cron '{schedule_cron}'"
+            except Exception as e:
+                logger.error("Failed to schedule new dataset", dataset_id=created.id, error=str(e))
+                schedule_msg = f" (scheduling failed: {str(e)})"
+        else:
+            schedule_msg = ""
+        
         return HTMLResponse(
             content=(
                 f'<div class="alert alert-success">'
                 f'Created dataset <strong>{created.name}</strong> '
-                f'(<code>{created.id}</code>)</div>'
+                f'(<code>{created.id}</code>){schedule_msg}</div>'
             ),
             status_code=200,
         )
@@ -229,6 +283,57 @@ async def upload_page(request: Request):
         "request": request,
         "settings": settings
     })
+
+
+@app.get("/scheduler", response_class=HTMLResponse)
+async def scheduler_page(request: Request):
+    """Scheduler status and job management page."""
+    try:
+        scheduler = get_scheduler()
+        status = scheduler.get_status()
+        jobs = scheduler.list_jobs()
+        recent_executions = scheduler.get_job_executions(limit=20)
+        
+        return templates.TemplateResponse("scheduler.html", {
+            "request": request,
+            "scheduler_status": status,
+            "jobs": jobs,
+            "recent_executions": recent_executions,
+            "settings": settings
+        })
+    except Exception as e:
+        logger.error("Error loading scheduler page", error=str(e))
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "error": f"Scheduler error: {str(e)}",
+            "settings": settings
+        })
+
+
+@app.get("/api/scheduler/status")
+async def scheduler_status():
+    """Get scheduler status via API."""
+    try:
+        scheduler = get_scheduler()
+        status = scheduler.get_status()
+        jobs = scheduler.list_jobs()
+        
+        return {
+            "status": status,
+            "jobs": [
+                {
+                    "id": job.id,
+                    "name": job.name,
+                    "cron_expression": job.cron_expression,
+                    "enabled": job.enabled,
+                    "next_run": job.next_run.isoformat() if job.next_run else None,
+                    "last_run": job.last_run.isoformat() if job.last_run else None
+                }
+                for job in jobs
+            ]
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # API Health Check

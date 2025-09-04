@@ -43,7 +43,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">
-                            {{ recent_runs|selectattr("status", "equalto", "completed")|list|length }}
+                            {{ recent_runs|selectattr("status.value", "equalto", "completed")|list|length }}
                         </h4>
                         <p class="card-text">Successful Runs</p>
                     </div>
@@ -61,7 +61,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">
-                            {{ recent_runs|selectattr("status", "equalto", "running")|list|length }}
+                            {{ recent_runs|selectattr("status.value", "equalto", "running")|list|length }}
                         </h4>
                         <p class="card-text">Running</p>
                     </div>
@@ -79,7 +79,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">
-                            {{ recent_runs|selectattr("status", "equalto", "failed")|list|length }}
+                            {{ recent_runs|selectattr("status.value", "equalto", "failed")|list|length }}
                         </h4>
                         <p class="card-text">Failed Runs</p>
                     </div>

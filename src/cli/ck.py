@@ -16,6 +16,7 @@ from src.db import init_database, get_session, DatasetCRUD, RunCRUD, MappingCRUD
 from src.models import DatasetCreate, RunCreate, MappingCreate, RunStatus
 from src.core.intake import load_frame
 from src.core.mapping import load_profile, list_profiles
+from src.core.einvoice import generate_invoices_from_csv
 from src.core.normalize import normalize_dataframe, apply_column_mapping
 
 # Initialize logging for CLI
@@ -383,5 +384,32 @@ def main():
     cli()
 
 
-if __name__ == '__main__':
-    main()
+    if __name__ == '__main__':
+        main()
+
+
+@cli.group()
+def einvoice():
+    """e-Invoice utilities"""
+    pass
+
+
+@einvoice.command('generate')
+@click.option('--input', 'input_csv', type=click.Path(exists=True), required=True, help='Input CSV file')
+@click.option('--org-id', required=True, help='Organization ID (for output path)')
+@click.option('--out', 'output_dir', type=click.Path(), help='Output directory (default: outputs/<org>/einvoice/<ts>)')
+@click.option('--xsd', 'xsd_path', type=click.Path(exists=True), help='Optional UBL XSD for validation')
+def einvoice_generate(input_csv, org_id, output_dir, xsd_path):
+    """Generate UBL invoices from a CSV and create a registry CSV."""
+    try:
+        input_p = Path(input_csv)
+        out_p = Path(output_dir) if output_dir else None
+        xsd_p = Path(xsd_path) if xsd_path else None
+        result = generate_invoices_from_csv(input_p, output_dir=out_p, org_id=org_id, xsd_path=xsd_p)
+        click.echo(f"Registry: {result['registry']}")
+        click.echo(f"Invoices: {len(result['invoices'])}")
+        for p in result['invoices']:
+            click.echo(f"  - {p}")
+    except Exception as e:
+        click.echo(f"Error generating e-invoices: {e}", err=True)
+        sys.exit(1)

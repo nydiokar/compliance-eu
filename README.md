@@ -59,15 +59,36 @@ uvicorn src.app:app --reload --port 8000
 
 1. **Web Interface**: Visit http://localhost:8000 for the admin UI
 2. **CLI**: Use `compliance-kit --help` for command-line operations
-3. **API**: REST API available at http://localhost:8000/docs
+3. **API**: REST API available at http://localhost:8000/api/docs (if `DEBUG=true`)
 
-### Example Workflow
+### Example Workflow (Open Data)
 
 1. Upload messy Excel file with budget data
 2. Map columns using the visual interface
 3. Save mapping profile for reuse
 4. Set up automated publishing schedule
 5. Monitor runs and download compliant outputs
+
+### e‑Invoice (MVP)
+
+- Generate UBL invoices from a CSV via CLI:
+
+```bash
+compliance-kit einvoice generate \
+  --input path/to/invoices.csv \
+  --org-id my_org \
+  --out outputs/my_org/einvoice \
+  --xsd path/to/UBL-Invoice-2.1.xsd   # optional
+```
+
+- Process a CSV via API (returns registry + list of XML files):
+
+```
+POST /api/einvoice/process
+Content-Type: multipart/form-data
+  file=@invoices.csv
+  org_id=my_org
+```
 
 ## Architecture
 
@@ -78,10 +99,25 @@ Input Layer → Mapper/Profiler → Validator/Normalizer → Output Modules → 
 
 ## Documentation
 
-- [Mapping Profiles](docs/Profiles.md)
-- [CKAN Integration](docs/CKAN.md)
-- [e-Invoice Setup](docs/eInvoice.md)
-- [NIS2 Compliance](docs/NIS2.md)
+- Mapping DSL: `docs/mapping_dsl.md`
+- CKAN Publishing: `docs/ckan_publishing.md`
+- e‑Invoice MVP: `docs/e_invoice_mvp.md`
+- Build Plan: `docs/compliance_automation_kit_build_plan_v_1.md`
+
+## What’s New
+
+- e‑Invoice batch generation (CSV → UBL XML + registry) via CLI and API
+- Custom cron-based scheduler with UI at `/scheduler`
+- CKAN client + publisher with retries and id tracking
+- Robust validators with business rules and error CSVs
+
+## Next Work
+
+- e‑Invoice UI upload page; stronger CSV mapping/normalization; optional bundled XSD
+- Mapping UI: add save/update workflow (drag/drop optional later)
+- CKAN: `/publish/test` endpoint + UI button to verify credentials
+- NIS2 Lite: checklist PDF generator and basic UI
+- Docs: add ESG/NIS2 docs and packaging instructions (.msi / service)
 
 ## Development
 

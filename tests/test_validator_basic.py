@@ -24,8 +24,8 @@ def test_basic_validation_rules_flag_out_of_range():
     assert errors is not None
     assert not errors.empty
     reasons = set(errors["reason"].tolist())
-    assert any(r.startswith("gt_max") for r in reasons) or "not_in_enum" in reasons
-    assert any(r.startswith("lt_min") for r in reasons)
+    assert any(r.startswith("above_maximum") for r in reasons)
+    assert any(r.startswith("below_minimum") for r in reasons)
     # At least one row was dropped
     assert len(valid) < len(df)
 

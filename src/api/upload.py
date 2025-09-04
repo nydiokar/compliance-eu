@@ -116,7 +116,7 @@ async def process_file(
     from src.core.pipeline import process_file_pipeline
     from src.models import Dataset
     
-    dataset_dir = settings.upload_dir / dataset_id
+    dataset_dir = settings.upload_dir / dataset.org_id / dataset_id
     dataset_dir.mkdir(parents=True, exist_ok=True)
     
     saved_path = dataset_dir / file.filename

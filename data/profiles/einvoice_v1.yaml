@@ -1,0 +1,59 @@
+profile: einvoice_v1
+version: "0.1"
+description: "Minimal e-Invoice profile for UBL XML generation (MVP)"
+
+columns:
+  invoice_id:
+    sources: ["Invoice ID", "ID", "Номер"]
+    type: string
+    required: true
+  issue_date:
+    sources: ["Issue Date", "Дата", "Date"]
+    type: date
+    required: true
+    format: ["YYYY-MM-DD", "DD.MM.YYYY"]
+  supplier_name:
+    sources: ["Supplier", "Доставчик", "Seller"]
+    type: string
+    required: true
+  supplier_tax_id:
+    sources: ["Supplier Tax ID", "VAT", "ЕИК"]
+    type: string
+  customer_name:
+    sources: ["Customer", "Клиент", "Buyer"]
+    type: string
+    required: true
+  customer_tax_id:
+    sources: ["Customer Tax ID", "VAT No", "ЕИК клиент"]
+    type: string
+  line_description:
+    sources: ["Description", "Описание"]
+    type: string
+    required: true
+  quantity:
+    sources: ["Qty", "Количество"]
+    type: decimal
+    required: true
+    validation:
+      min_value: 0
+  unit_price:
+    sources: ["Unit Price", "Цена"]
+    type: decimal
+    required: true
+    validation:
+      min_value: 0
+  tax_percent:
+    sources: ["VAT %", "ДДС %"]
+    type: decimal
+    validation:
+      min_value: 0
+      max_value: 100
+
+normalization:
+  thousand_sep: [" ", ","]
+  decimal_sep: [",", "."]
+
+output:
+  format: "xml"
+  filename_template: "einvoice_{org_id}_{timestamp}"
+

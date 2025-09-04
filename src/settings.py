@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     ckan_url: Optional[str] = Field(default=None, env="CKAN_URL")
     ckan_api_key: Optional[str] = Field(default=None, env="CKAN_API_KEY")
     ckan_organization: Optional[str] = Field(default=None, env="CKAN_ORGANIZATION")
+    ckan_timeout: int = Field(default=30, env="CKAN_TIMEOUT")
+    ckan_max_retries: int = Field(default=3, env="CKAN_MAX_RETRIES")
+    ckan_backoff_factor: float = Field(default=1.0, env="CKAN_BACKOFF_FACTOR")
     
     # FTP Integration
     ftp_host: Optional[str] = Field(default=None, env="FTP_HOST")

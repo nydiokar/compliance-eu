@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scheduler - {{ settings.app_name }}</title>
+    <script src="https://unpkg.com/htmx.org@1.8.4"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- Navigation -->
+        <nav class="nav nav-pills mb-4">
+            <a class="nav-link" href="/">Dashboard</a>
+            <a class="nav-link" href="/datasets">Datasets</a>
+            <a class="nav-link" href="/upload">Upload</a>
+            <a class="nav-link active" href="/scheduler">Scheduler</a>
+        </nav>
+
+        <h1>Job Scheduler</h1>
+        
+        <!-- Scheduler Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Scheduler Status</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-{{ 'success' if scheduler_status.running else 'danger' }} me-2">
+                                {{ 'Running' if scheduler_status.running else 'Stopped' }}
+                            </span>
+                            <strong>Status</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Total Jobs:</strong> {{ scheduler_status.total_jobs }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Enabled Jobs:</strong> {{ scheduler_status.enabled_jobs }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Executions (24h):</strong> {{ scheduler_status.recent_executions_24h }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduled Jobs -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Scheduled Jobs</h3>
+            </div>
+            <div class="card-body">
+                {% if jobs %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Cron Expression</th>
+                                <th>Status</th>
+                                <th>Next Run</th>
+                                <th>Last Run</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                            <tr>
+                                <td>{{ job.name }}</td>
+                                <td><code>{{ job.cron_expression }}</code></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if job.enabled else 'secondary' }}">
+                                        {{ 'Enabled' if job.enabled else 'Disabled' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if job.next_run %}
+                                        {{ job.next_run.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job.last_run %}
+                                        {{ job.last_run.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No scheduled jobs found. Create datasets with cron schedules to see them here.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Executions -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Recent Job Executions</h3>
+            </div>
+            <div class="card-body">
+                {% if recent_executions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Started</th>
+                                <th>Finished</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for execution in recent_executions %}
+                            <tr>
+                                <td><code>{{ execution.job_id }}</code></td>
+                                <td>{{ execution.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    {% if execution.finished_at %}
+                                        {{ execution.finished_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set status_colors = {
+                                        'completed': 'success',
+                                        'failed': 'danger',
+                                        'running': 'primary',
+                                        'pending': 'warning',
+                                        'cancelled': 'secondary'
+                                    } %}
+                                    <span class="badge bg-{{ status_colors.get(execution.status.value, 'secondary') }}">
+                                        {{ execution.status.value.title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if execution.finished_at and execution.started_at %}
+                                        {% set duration = (execution.finished_at - execution.started_at).total_seconds() %}
+                                        {{ "%.1f"|format(duration) }}s
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No recent job executions found.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
