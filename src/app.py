@@ -15,6 +15,7 @@ from src.api.mappings import router as mappings_router
 from src.api.runs import router as runs_router
 from src.api.upload import router as upload_router
 from src.api.einvoice import router as einvoice_router
+from src.api.publish import router as publish_router
 from src.core.scheduler import get_scheduler
 from src.core.scheduler.jobs import setup_dataset_schedule
 
@@ -49,6 +50,7 @@ app.include_router(mappings_router, prefix="/api/mappings", tags=["mappings"])
 app.include_router(runs_router, prefix="/api/runs", tags=["runs"])
 app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(einvoice_router, prefix="/api/einvoice", tags=["einvoice"])
+app.include_router(publish_router, tags=["publish"])  # /publish/test
 
 
 @app.on_event("startup")
@@ -69,8 +71,8 @@ async def startup_event():
         scheduler.start()
         
         # Set up existing dataset schedules
-        from src.db import DatasetCRUD
-        with get_database_session() as db:
+        from src.db import DatasetCRUD, get_db_session
+        with get_db_session() as db:
             datasets = DatasetCRUD.list(db, limit=1000)  # Get all datasets
             scheduled_count = 0
             
@@ -339,8 +341,30 @@ async def scheduler_status():
 # API Health Check
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "ok", "version": settings.app_version}
+    """Health check endpoint with DB and scheduler status."""
+    db_ok = True
+    db_error = None
+    try:
+        from sqlalchemy import text
+        from src.db import engine
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        db_ok = False
+        db_error = str(e)
+
+    try:
+        scheduler = get_scheduler()
+        sched_status = scheduler.get_status()
+    except Exception as e:
+        sched_status = {"running": False, "error": str(e)}
+
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "version": settings.app_version,
+        "db": {"ok": db_ok, "error": db_error},
+        "scheduler": sched_status,
+    }
 
 
 if __name__ == "__main__":

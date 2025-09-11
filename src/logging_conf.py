@@ -57,10 +57,8 @@ def setup_logging() -> FilteringBoundLogger:
     if settings.log_file:
         handlers.append("file")
     
-    logging_config = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
+    if STRUCTLOG_AVAILABLE:
+        formatters = {
             "json": {
                 "()": structlog.stdlib.ProcessorFormatter,
                 "processor": structlog.processors.JSONRenderer(),
@@ -69,7 +67,19 @@ def setup_logging() -> FilteringBoundLogger:
                 "()": structlog.stdlib.ProcessorFormatter,
                 "processor": structlog.dev.ConsoleRenderer(colors=True),
             },
-        },
+        }
+    else:
+        # Fallback to standard library formatters if structlog is not installed
+        std_format = "%(asctime)s %(levelname)s %(name)s %(message)s"
+        formatters = {
+            "json": {"format": std_format},
+            "console": {"format": std_format},
+        }
+
+    logging_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": formatters,
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",

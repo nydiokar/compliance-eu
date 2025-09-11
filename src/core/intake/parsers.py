@@ -346,11 +346,17 @@ class FileParserFactory:
         ext = file_path.suffix.lower().lstrip('.')
         allowed = {e.lower().lstrip('.') for e in settings.allowed_file_extensions}
         if ext not in allowed:
-            raise ParseError(f"File type not allowed: .{ext}")
+            supported = ", ".join(sorted(f".{e}" for e in allowed))
+            raise ParseError(
+                f"File type not allowed: .{ext}. Supported types: {supported}"
+            )
         
         parser = self.get_parser(file_path)
         if not parser:
-            raise ParseError(f"No parser available for file type: {file_path.suffix}")
+            supported = ", ".join(sorted(p for p in ['.csv','.tsv','.txt','.xlsx','.xls']))
+            raise ParseError(
+                f"No parser available for file type: {file_path.suffix}. Currently supported: {supported}"
+            )
         
         logger.info("Starting file parsing", 
                    file=str(file_path), 

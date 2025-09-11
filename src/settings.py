@@ -49,7 +49,8 @@ class Settings(BaseSettings):
     
     # Security Settings
     allowed_file_extensions: List[str] = Field(
-        default=[".csv", ".xlsx", ".xls", ".pdf", ".json", ".yaml", ".yml"],
+        # Narrow to currently supported intake types; broaden as parsers are added
+        default=["csv", "tsv", "txt", "xlsx", "xls"],
         env="ALLOWED_FILE_EXTENSIONS"
     )
     pii_redaction_enabled: bool = Field(default=True, env="PII_REDACTION_ENABLED")
